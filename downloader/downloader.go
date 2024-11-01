@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 )
 
@@ -54,15 +55,12 @@ type Source struct {
 	File string `json:"file"`
 }
 
-func DownloadSingle(url string, filename string, subtitleLang string) {
+func DownloadSingle(url string, subtitleLang string, parentDirectory string) {
 	id := ExtractContentId(url)
 	data := GetContentPageData(id)
 	downloadUrl := GetDownloadUrl(data)
-	dirCreated := false
 
-	if filename == "" {
-		filename = fmt.Sprintf("%s_%d_%d", data.Data.MainContent.Title, data.Data.MainContent.Season, data.Data.MainContent.Episode)
-	}
+	name := fmt.Sprintf("%s_%d_%d", data.Data.MainContent.Title, data.Data.MainContent.Season, data.Data.MainContent.Episode)
 
 	if subtitleLang != "" {
 		subtitles := data.Data.MainContent.Medias[0].Subtitles
@@ -76,29 +74,31 @@ func DownloadSingle(url string, filename string, subtitleLang string) {
 
 		for _, subtitle := range subtitles {
 			if subtitle.SrcLang == subtitleLang {
-				_ = os.Mkdir(filename, os.ModePerm) // dont care if directory fails to create
-				subitleFileName := fmt.Sprintf("%s/%s_%s", filename, filename, subtitle.FileName)
-				downloadFile(subtitle.Src, subitleFileName)
+				parentDirectory = filepath.Join(parentDirectory, name)
+				_ = os.Mkdir(parentDirectory, os.ModePerm) // dont care if directory fails to create
+
+				subitleFileName := fmt.Sprintf("%s_%s", name, subtitle.FileName)
+				subitleFilePath := filepath.Join(parentDirectory, subitleFileName)
+
+				downloadFile(subtitle.Src, subitleFilePath)
 				fmt.Println("Subtitles downloaded successfully")
-				dirCreated = true
 				break
 			}
 		}
 	}
-	filepath := fmt.Sprintf("%s.mp4", filename)
 
-	if dirCreated {
-		filepath = fmt.Sprintf("%s/%s.mp4", filename, filename)
-	}
+	filenameExt := fmt.Sprintf("%s.mp4", name)
 
-	fmt.Printf("Downloading %s to %s\n", url, filename)
-	downloadFile(downloadUrl, filepath)
-	fmt.Printf("Finished Downloading %s to %s\n", url, filename)
+	path := filepath.Join(parentDirectory, filenameExt)
+
+	fmt.Printf("Downloading %s to %s\n", url, path)
+	downloadFile(downloadUrl, path)
+	fmt.Println("Finished downloading")
+	fmt.Println()
 }
 
 func DownloadSeason(url string, seasonName string, subtitleLang string) {
 	id := ExtractContentId(url)
-	// fmt.Println(id)
 	data := GetContentPageData(id)
 
 	title := data.Data.MainContent.Title
@@ -110,36 +110,11 @@ func DownloadSeason(url string, seasonName string, subtitleLang string) {
 	for _, season := range seasonList.Seasons {
 		if season.Name == seasonName {
 			for _, seasonContent := range season.Contents {
-				_ = os.Mkdir(title, os.ModePerm) // dont care if directory fails to create
-				// fileName := fmt.Sprintf("%s/episood_%s", title, strconv.Itoa(i+1))
-				DownloadSingle(seasonContent.Url, "", subtitleLang)
+				parentDirName := title
+				_ = os.Mkdir(parentDirName, os.ModePerm) // dont care if directory fails to create
+				DownloadSingle(seasonContent.Url, subtitleLang, parentDirName)
 			}
 		}
-	}
-}
-
-func downloadFile(url string, filepath string) {
-	out, err := os.Create(filepath)
-	if err != nil {
-		panic(err)
-	}
-	defer out.Close()
-
-	resp, err := http.Get(url)
-
-	if err != nil {
-		panic(err)
-	}
-
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		panic("Bad status")
-	}
-
-	_, err = io.Copy(out, resp.Body)
-
-	if err != nil {
-		panic(err)
 	}
 }
 
@@ -175,4 +150,29 @@ func ExtractContentId(url string) string {
 
 func GetDownloadUrl(data *ContentPageData) string {
 	return fmt.Sprintf("https:%s", data.Data.MainContent.Medias[0].Src.File)
+}
+
+func downloadFile(url string, filepath string) {
+	out, err := os.Create(filepath)
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+
+	resp, err := http.Get(url)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		panic("Bad status")
+	}
+
+	_, err = io.Copy(out, resp.Body)
+
+	if err != nil {
+		panic(err)
+	}
 }
