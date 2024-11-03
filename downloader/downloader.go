@@ -102,9 +102,9 @@ func DownloadSeason(url string, seasonName string, subtitleLang string, maxConcu
 	id := ExtractContentId(url)
 	data := GetContentPageData(id)
 	var wg sync.WaitGroup
-    
-    currentConcurrent := 1
-    
+
+	currentConcurrent := 1
+
 	title := data.Data.MainContent.Title
 	seasonList := data.Data.SeasonList
 	if seasonList.Type != "seasonal" {
@@ -116,18 +116,18 @@ func DownloadSeason(url string, seasonName string, subtitleLang string, maxConcu
 			for _, seasonContent := range season.Contents {
 				parentDirName := title
 				_ = os.Mkdir(parentDirName, os.ModePerm) // dont care if directory fails to create
-                
-                if currentConcurrent < maxConcurrent {
-                    wg.Add(1)
-                    currentConcurrent++
-                    go func() {
-                        defer wg.Done()
-                        fmt.Println("Running in parallel")
-                        DownloadSingle(seasonContent.Url, subtitleLang, parentDirName)
-                    }()
-                } else {
-                    DownloadSingle(seasonContent.Url, subtitleLang, parentDirName)
-                }
+
+				if currentConcurrent < maxConcurrent {
+					wg.Add(1)
+					currentConcurrent++
+					go func() {
+						defer wg.Done()
+						fmt.Println("Running in parallel")
+						DownloadSingle(seasonContent.Url, subtitleLang, parentDirName)
+					}()
+				} else {
+					DownloadSingle(seasonContent.Url, subtitleLang, parentDirName)
+				}
 			}
 		}
 	}

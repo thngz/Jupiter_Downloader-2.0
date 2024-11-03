@@ -49,8 +49,8 @@ func TestDownloadUrl(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-    
+
 	if resp.StatusCode != http.StatusOK {
-	    t.Fatalf("bad status: %s", resp.Status)
+		t.Fatalf("bad status: %s", resp.Status)
 	}
 }
