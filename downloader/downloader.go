@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,7 +18,7 @@ type ContentPageData struct {
 
 type Data struct {
 	MainContent MainContent `json:"mainContent"`
-	SeasonList  SeasonList  `json:"seasonList"`
+	SeasonList  SeasonList `json:"seasonList"`
 }
 
 type MainContent struct {
@@ -152,7 +153,12 @@ func GetContentPageData(contentId string) *ContentPageData {
 
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
-		panic(err)
+		var unmarshalTypeError *json.UnmarshalTypeError
+		if errors.As(err, &unmarshalTypeError) {
+			data.Data.SeasonList = SeasonList{}
+		} else {
+			panic(err)
+		}
 	}
 
 	return &data
