@@ -18,7 +18,7 @@ type ContentPageData struct {
 
 type Data struct {
 	MainContent MainContent `json:"mainContent"`
-	SeasonList  SeasonList `json:"seasonList"`
+	SeasonList  SeasonList  `json:"seasonList"`
 }
 
 type MainContent struct {
@@ -50,6 +50,7 @@ type Media struct {
 type Subtitles struct {
 	Src      string `json:"src"`
 	FileName string `json:"filename"`
+	Name     string `json:"name"`
 	SrcLang  string `json:"srclang"`
 }
 
@@ -75,7 +76,7 @@ func DownloadSingle(url string, subtitleLang string, parentDirectory string) {
 		fmt.Println("Fetching subtitles")
 
 		for _, subtitle := range subtitles {
-			if subtitle.SrcLang == subtitleLang {
+			if subtitle.SrcLang == subtitleLang || subtitle.Name == subtitleLang {
 				parentDirectory = filepath.Join(parentDirectory, name)
 				_ = os.Mkdir(parentDirectory, os.ModePerm) // dont care if directory fails to create
 
